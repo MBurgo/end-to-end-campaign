@@ -1,0 +1,73 @@
+{
+  "Urgency": {
+    "high_threshold": 8,
+    "low_threshold": 3,
+    "high_rule": "- Include a clear deadline phrase in both the headline/subject **and** the CTA (e.g., “midnight”, an explicit date, “today only”).",
+    "mid_rule": "- Refer to timing **once only** (e.g., “later this week”) and use **no more than one** urgency synonym such as “quickly”, “act now”, “limited”, etc. Do not include hard countdowns or explicit deadlines.",
+    "low_rule": "- DO NOT use countdowns, deadline words, scarcity cues or time‑pressure phrases; keep tone calm and informational.",
+    "high_exemplar_allowed": true
+  },
+
+  "Data_Richness": {
+    "high_threshold": 7,
+    "low_threshold": 3,
+    "high_rule": "- Cite at least **one** specific numeric performance figure (percentage return, CAGR, dollar amount, member count, etc.).",
+    "mid_rule": "- You may use **one** light data point or ranking (e.g., “top‑quartile performer”), but no detailed stats tables or multiple figures.",
+    "low_rule": "- Avoid statistics, percentages and dollar figures; rely purely on qualitative proof.",
+    "high_exemplar_allowed": false
+  },
+
+  "Social_Proof": {
+    "high_threshold": 6,
+    "low_threshold": 3,
+    "high_rule": "- Provide **three or more** credibility builders (testimonials, membership count, expert quote, third‑party award).",
+    "mid_rule": "- Include **one** credibility builder (e.g., “trusted by 80,000 members”) but no lengthy testimonial blocks.",
+    "low_rule": "- Omit testimonials, expert quotes, awards and membership numbers.",
+    "high_exemplar_allowed": false
+  },
+
+  "Conversational_Tone": {
+    "high_threshold": 8,
+    "low_threshold": 3,
+    "high_rule": "- Write in second‑person, use contractions, occasional rhetorical questions and short, friendly sentences.",
+    "mid_rule": "- Use clear, neutral language (mix of second‑ and third‑person is fine). **Do not open with informal greetings (e.g., “Hi”, “Hey”, “Hi there”) or rhetorical questions.** Avoid more than one contraction per paragraph.",
+    "low_rule": "- Write in third‑person, avoid contractions and questions; maintain a neutral, formal register.",
+    "high_exemplar_allowed": false
+  },
+
+  "Imagery": {
+    "high_threshold": 8,
+    "low_threshold": 3,
+    "high_rule": "- Use vivid metaphors or visual comparisons (e.g., snowball, rocket, tidal wave) to illustrate key points.",
+    "mid_rule": "- Allow **one** mild metaphor or descriptive adjective; otherwise keep language straightforward.",
+    "low_rule": "- Avoid metaphors and descriptive imagery; keep language literal. Use **no more than two adjectives** per paragraph.",
+    "high_exemplar_allowed": false
+  },
+
+  "Comparative_Framing": {
+    "high_threshold": 7,
+    "low_threshold": 3,
+    "high_rule": "- Draw explicit historical or sector comparisons (e.g., “like buying Netflix in 2002” or “this decade’s oil rush”).",
+    "mid_rule": "- Use a single light comparison (e.g., “similar to past tech booms”) without deep storytelling.",
+    "low_rule": "- Do not reference historical comparisons or analogies; focus only on the present opportunity.",
+    "high_exemplar_allowed": false
+  },
+
+  "FOMO": {
+    "high_threshold": 7,
+    "low_threshold": 3,
+    "high_rule": "- Highlight the emotional cost of missing out and potential regret (e.g., “don’t be left behind”).",
+    "mid_rule": "- Note that the offer is attractive and may not last, **but do not mention regret, fear, or missing out.** Words such as “popular” or “worth considering soon” are acceptable.",
+    "low_rule": "- Avoid any fear‑of‑missing‑out language or emotional urgency; present benefits objectively.",
+    "high_exemplar_allowed": false
+  },
+
+  "Repetition": {
+    "high_threshold": 6,
+    "low_threshold": 2,
+    "high_rule": "- Reinforce the main offer or deadline with **deliberate repetition** for emphasis (no more than two repeats).",
+    "mid_rule": "- Restate the offer once in a different phrase; avoid obvious repetition techniques.",
+    "low_rule": "- State each point only once; avoid repeated phrases entirely.",
+    "high_exemplar_allowed": false
+  }
+}
