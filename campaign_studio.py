@@ -94,7 +94,7 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         
     genai.configure(api_key=st.secrets.google_api_key)
     
-    # FIX: Default to None if no system message is found
+    # FIX: Default to None if no system message is found (Empty string "" causes API error)
     sys_msg = next((m['content'] for m in messages if m['role'] == 'system'), None)
     
     history = [m['content'] for m in messages if m['role'] != 'system']
@@ -114,17 +114,19 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
     
     # ---------------------------------------------------------
     # SELF-HEALING MODEL SELECTOR
+    # We try these models in order. If one fails (404), we try the next.
     # ---------------------------------------------------------
     known_models = [
-        "gemini-2.5-flash",          # BEST OPTION
-        "gemini-2.5-flash-lite",     # BACKUP
-        "gemini-2.0-flash",          # LEGACY
-        "gemini-3-flash-preview"     # EXPERIMENTAL
+        "gemini-2.5-flash",          # BEST OPTION: Current Stable Workhorse
+        "gemini-2.5-flash-lite",     # BACKUP: Ultra-fast, rarely rate-limited
+        "gemini-2.0-flash",          # LEGACY: Reliable older standard
+        "gemini-3-flash-preview"     # EXPERIMENTAL: Use as last resort due to Rate Limits
     ]
 
     last_error = None
 
     for model_name in known_models:
+        # Retry loop for 429 (Rate Limits) on the current model
         for attempt in range(3):
             try:
                 # Only pass system_instruction if it exists (not None)
@@ -140,19 +142,29 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
                 error_str = str(e)
                 last_error = error_str
                 
+                # CASE 1: Rate Limit (Wait and retry same model)
                 if "429" in error_str:
-                    time.sleep(2 ** (attempt + 1)) # Exponential backoff
+                    time.sleep(2 ** (attempt + 1)) # Exponential backoff: 2s, 4s...
                     continue
+                
+                # CASE 2: Model Not Found (Break retry loop, try next model in list)
                 if "404" in error_str or "not found" in error_str.lower():
                     break 
+                
+                # CASE 3: Other errors (Stop trying)
                 if attempt == 2:
                     break
+        
+        # If we had a successful return, we exit the function. 
+        # If we broke out of the inner loop, we continue to the next model in `known_models`.
         else:
             continue
         break
 
+    # If we get here, all models failed
     if last_error:
         st.error(f"🚨 All Gemini models failed. Last error: {last_error}")
+        st.info("Tip: In Streamlit Cloud, click the menu (top right) -> 'Reboot App' to force the new library version to load.")
     return None
 
 # ────────────────────────────────────────────────────────────
@@ -201,7 +213,9 @@ for k, v in defaults.items():
 # ────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("🎛️ Campaign Settings")
+    
     st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 2.5 Flash\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 2.5 Flash")
+    
     st.markdown("---")
     
     st.subheader("🎯 Primary Audience")
@@ -251,7 +265,7 @@ with tab_write:
         length_mode = c1.selectbox("Length", ["Short (200w)", "Medium (500w)", "Long (1000w)"])
         copy_type = c2.selectbox("Format", ["📧 Email", "📝 Sales Page"])
         
-        # New: Select the Lede Type from the PDF 
+        # New: Select the Lede Type from the PDF
         lede_type = st.selectbox("Lede Strategy", [
             "The Interrupting Idea (Startle the reader)",
             "The Shocker (Go against the grain)",
@@ -276,9 +290,15 @@ with tab_write:
                 ### CORE PHILOSOPHY
                 1. **AIDA Framework:** You must grab Attention, generate Interest, stimulate Desire, and force Action.
                 2. **The 4 U's:** Your headline must be Urgent, Unique, Useful, and Ultra-Specific.
-                3. **Emotional Drivers:** You must target one of the 7 Drivers: Lust, Escape, Esteem, Fear, Guilt, Affinity, or Greed[cite: 374].
+                3. **Emotional Drivers:** You must target one of the 7 Drivers: Lust, Escape, Esteem, Fear, Guilt, Affinity, or Greed.
                 
-                ### STYLE RULES [cite: 1197]
+                ### CRITICAL RULES (DO NOT BREAK)
+                - **NO META-TALK:** Never explain what you are doing. Do not say "Here is the interrupting idea." Just write the copy.
+                - **NO "SOFT" CLOSING:** Never say "worth considering." Command the reader. Use Scarcity (e.g., "This window is closing," "Don't get left behind").
+                - **TEASE THE MECHANISM:** Don't just say the stocks are good. Tease a specific reason (e.g., "They own the patent," "They are the 'picks and shovels'").
+                - **USE "BUCKET BRIGADE" WORDS:** Use short, punchy connectors like "Here's why," "But there's a catch," "Let me explain."
+                
+                ### STYLE RULES
                 - Use small words. Avoid "poetic" or "clever" copy.
                 - Write in the second person ("You").
                 - Use active verbs and the present tense.
@@ -315,6 +335,7 @@ with tab_write:
                     
                     if res:
                         try:
+                            # Robust regex to find JSON
                             json_match = re.search(r"\{[\s\S]*\}", res)
                             if json_match:
                                 clean_json = json_match.group(0)
@@ -441,9 +462,9 @@ with tab_refine:
                 {transcript_text}
                 
                 Identify:
-                1. The main "Trust Gap" (what made the Skeptic doubt)[cite: 89].
+                1. The main "Trust Gap" (what made the Skeptic doubt).
                 2. The main "Hook Strength" (what the Believer liked).
-                3. Three specific actionable edits to improve the copy using 'Objection Removal' techniques[cite: 1387].
+                3. Three specific actionable edits to improve the copy using 'Objection Removal' techniques.
                 """)
                 
                 with st.spinner("Analyzing psychology..."):
