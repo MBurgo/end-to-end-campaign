@@ -87,7 +87,7 @@ def query_openai(messages, temperature=0.7, json_mode=False):
             time.sleep(1) # Wait 1s before retry
 
 def query_gemini(messages, temperature=0.7, json_mode=False):
-    """Specialized handler for Copy & Strategy (Gemini 1.5 Flash)."""
+    """Specialized handler for Copy & Strategy (Gemini 1.5 Flash Latest)."""
     if "google_api_key" not in st.secrets:
         st.error("⚠️ Google API Key missing in .streamlit/secrets.toml")
         return None
@@ -110,8 +110,8 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         response_mime_type="application/json" if json_mode else "text/plain"
     )
     
-    # Updated Model: 1.5 Flash (Better Rate Limits)
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=sys_msg)
+    # UPDATED: Using explicit 'latest' tag to avoid 404s
+    model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest", system_instruction=sys_msg)
 
     # RETRY LOOP (Crucial for 429 Errors)
     for attempt in range(3):
@@ -124,6 +124,15 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
                 # If rate limited, wait exponentially (2s, 4s, 8s)
                 wait_time = 2 ** (attempt + 1)
                 time.sleep(wait_time)
+            elif "404" in error_str:
+                 # Fallback if 'latest' alias fails, try explicit version
+                try:
+                    fallback_model = genai.GenerativeModel(model_name="gemini-1.5-flash-001", system_instruction=sys_msg)
+                    resp = fallback_model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
+                    return resp.text
+                except:
+                    st.error(f"Gemini Model Not Found. Please run `pip install --upgrade google-generativeai`.")
+                    return None
             elif attempt == 2:
                 # If it's the last attempt, show the error
                 st.error(f"Gemini API Error: {error_str}")
@@ -179,7 +188,7 @@ for k, v in defaults.items():
 with st.sidebar:
     st.header("🎛️ Campaign Settings")
     
-    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 1.5 Flash (High Speed)\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 1.5 Flash")
+    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 1.5 Flash\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 1.5 Flash")
     
     st.markdown("---")
     
