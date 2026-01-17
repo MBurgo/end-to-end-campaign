@@ -61,7 +61,7 @@ def load_configs():
 TRAIT_CFG, ALL_PERSONAS = load_configs()
 
 # ────────────────────────────────────────────────────────────
-# 3. AI ENGINE HANDLER (Hybrid with Retry Logic)
+# 3. AI ENGINE HANDLER (Hybrid with Self-Healing)
 # ────────────────────────────────────────────────────────────
 
 def query_openai(messages, temperature=0.7, json_mode=False):
@@ -87,7 +87,7 @@ def query_openai(messages, temperature=0.7, json_mode=False):
             time.sleep(1) # Wait 1s before retry
 
 def query_gemini(messages, temperature=0.7, json_mode=False):
-    """Specialized handler for Copy & Strategy (Gemini 1.5 Flash Latest)."""
+    """Specialized handler for Copy & Strategy with Robust Fallback."""
     if "google_api_key" not in st.secrets:
         st.error("⚠️ Google API Key missing in .streamlit/secrets.toml")
         return None
@@ -110,36 +110,51 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         response_mime_type="application/json" if json_mode else "text/plain"
     )
     
-    # UPDATED: Using explicit 'latest' tag to avoid 404s
-    model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest", system_instruction=sys_msg)
+    # ---------------------------------------------------------
+    # SELF-HEALING MODEL SELECTOR
+    # We try these models in order. If one fails (404), we try the next.
+    # ---------------------------------------------------------
+    known_models = [
+        "gemini-2.5-flash",          # BEST OPTION: Current Stable Workhorse
+        "gemini-2.0-flash",          # BACKUP: Previous Stable
+        "gemini-1.5-flash-8b",       # FALLBACK: Ultra-fast/Lightweight
+        "gemini-3-flash-preview"     # EXPERIMENTAL: Use as last resort due to Rate Limits
+    ]
 
-    # RETRY LOOP (Crucial for 429 Errors)
-    for attempt in range(3):
-        try:
-            resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
-            return resp.text
-        except Exception as e:
-            error_str = str(e)
-            if "429" in error_str:
-                # If rate limited, wait exponentially (2s, 4s, 8s)
-                wait_time = 2 ** (attempt + 1)
-                time.sleep(wait_time)
-            elif "404" in error_str:
-                 # Fallback if 'latest' alias fails, try explicit version
-                try:
-                    fallback_model = genai.GenerativeModel(model_name="gemini-1.5-flash-001", system_instruction=sys_msg)
-                    resp = fallback_model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
-                    return resp.text
-                except:
-                    st.error(f"Gemini Model Not Found. Please run `pip install --upgrade google-generativeai`.")
-                    return None
-            elif attempt == 2:
-                # If it's the last attempt, show the error
-                st.error(f"Gemini API Error: {error_str}")
-                return None
-            else:
-                # Unknown error, wait 1s and retry
-                time.sleep(1)
+    last_error = None
+
+    for model_name in known_models:
+        # Retry loop for 429 (Rate Limits) on the current model
+        for attempt in range(3):
+            try:
+                model = genai.GenerativeModel(model_name=model_name, system_instruction=sys_msg)
+                resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
+                return resp.text
+                
+            except Exception as e:
+                error_str = str(e)
+                last_error = error_str
+                
+                # CASE 1: Rate Limit (Wait and retry same model)
+                if "429" in error_str:
+                    time.sleep(2 ** (attempt + 1)) # Exponential backoff: 2s, 4s...
+                    continue
+                
+                # CASE 2: Model Not Found (Break retry loop, try next model in list)
+                if "404" in error_str or "not found" in error_str.lower():
+                    break 
+                
+                # CASE 3: Other errors (Stop trying)
+                if attempt == 2:
+                    break
+        
+        # If we had a successful return, we exit the function. 
+        # If we broke out of the inner loop, we continue to the next model in `known_models`.
+
+    # If we get here, all models failed
+    st.error(f"🚨 All Gemini models failed. Last error: {last_error}")
+    st.info("Tip: In Streamlit Cloud, click the menu (top right) -> 'Reboot App' to force the new library version to load.")
+    return None
 
 # ────────────────────────────────────────────────────────────
 # 4. HELPER FUNCTIONS
@@ -188,7 +203,7 @@ for k, v in defaults.items():
 with st.sidebar:
     st.header("🎛️ Campaign Settings")
     
-    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 1.5 Flash\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 1.5 Flash")
+    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 2.5 Flash\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 2.5 Flash")
     
     st.markdown("---")
     
@@ -224,7 +239,7 @@ with tab_write:
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 1: The Brief</div>
-        Fill in the campaign details below. The AI (Gemini) will use your selected <strong>Tone Sliders</strong> 
+        Fill in the campaign details below. The AI (Gemini 2.5) will use your selected <strong>Tone Sliders</strong> 
         from the sidebar to draft high-converting copy.
     </div>
     """, unsafe_allow_html=True)
@@ -390,7 +405,7 @@ with tab_refine:
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 3: Strategic Polish</div>
-        The AI (Gemini) will now act as a <strong>Marketing Strategist</strong>. 
+        The AI (Gemini 2.5) will now act as a <strong>Marketing Strategist</strong>. 
         It will read the transcript from Step 2, identify why the Skeptic was doubtful, and rewrite the copy to fix those gaps.
     </div>
     """, unsafe_allow_html=True)
