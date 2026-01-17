@@ -2,72 +2,37 @@
   "Urgency": {
     "high_threshold": 8,
     "low_threshold": 3,
-    "high_rule": "- Include a clear deadline phrase in both the headline/subject **and** the CTA (e.g., “midnight”, an explicit date, “today only”).",
-    "mid_rule": "- Refer to timing **once only** (e.g., “later this week”) and use **no more than one** urgency synonym such as “quickly”, “act now”, “limited”, etc. Do not include hard countdowns or explicit deadlines.",
-    "low_rule": "- DO NOT use countdowns, deadline words, scarcity cues or time‑pressure phrases; keep tone calm and informational.",
-    "high_exemplar_allowed": true
+    "high_rule": "USE SCARCITY: Indulge the fear of missing out[cite: 1688]. Use phrases like 'Limited Time,' 'Only X Spots Left,' or 'Expires Midnight.' Reference 'loss of freedom' or 'diminishing personal control'[cite: 1704].",
+    "low_rule": "Use a calm, 'Reasonable Man' tone. Avoid countdowns or scarcity tactics. Focus on the logic of the argument."
   },
-
   "Data_Richness": {
     "high_threshold": 7,
     "low_threshold": 3,
-    "high_rule": "- Cite at least **one** specific numeric performance figure (percentage return, CAGR, dollar amount, member count, etc.).",
-    "mid_rule": "- You may use **one** light data point or ranking (e.g., “top‑quartile performer”), but no detailed stats tables or multiple figures.",
-    "low_rule": "- Avoid statistics, percentages and dollar figures; rely purely on qualitative proof.",
-    "high_exemplar_allowed": false
+    "high_rule": "USE SPECIFICITY (The 4th 'U'): Measure the size and speed of the claim (e.g., 'In two seconds, Bayer Aspirin begins to dissolve')[cite: 1401, 1403]. Use specific numbers, dates, and percentages to build credibility.",
+    "low_rule": "Focus on the 'Big Idea' and emotional narrative rather than dense data tables. Use qualitative proof over quantitative proof."
   },
-
   "Social_Proof": {
     "high_threshold": 6,
     "low_threshold": 3,
-    "high_rule": "- Provide **three or more** credibility builders (testimonials, membership count, expert quote, third‑party award).",
-    "mid_rule": "- Include **one** credibility builder (e.g., “trusted by 80,000 members”) but no lengthy testimonial blocks.",
-    "low_rule": "- Omit testimonials, expert quotes, awards and membership numbers.",
-    "high_exemplar_allowed": false
+    "high_rule": "USE SOCIAL PROOF: Leverage 'Wisdom of the Crowds' (e.g., 'Thousands of investors have already joined')[cite: 1568]. Use testimonials, 'Expert Social Proof,' or 'Celebrity Social Proof'[cite: 1564].",
+    "low_rule": "Rely on the strength of the argument itself rather than external validation. Avoid 'bandwagon' language."
   },
-
-  "Conversational_Tone": {
-    "high_threshold": 8,
-    "low_threshold": 3,
-    "high_rule": "- Write in second‑person, use contractions, occasional rhetorical questions and short, friendly sentences.",
-    "mid_rule": "- Use clear, neutral language (mix of second‑ and third‑person is fine). **Do not open with informal greetings (e.g., “Hi”, “Hey”, “Hi there”) or rhetorical questions.** Avoid more than one contraction per paragraph.",
-    "low_rule": "- Write in third‑person, avoid contractions and questions; maintain a neutral, formal register.",
-    "high_exemplar_allowed": false
-  },
-
-  "Imagery": {
-    "high_threshold": 8,
-    "low_threshold": 3,
-    "high_rule": "- Use vivid metaphors or visual comparisons (e.g., snowball, rocket, tidal wave) to illustrate key points.",
-    "mid_rule": "- Allow **one** mild metaphor or descriptive adjective; otherwise keep language straightforward.",
-    "low_rule": "- Avoid metaphors and descriptive imagery; keep language literal. Use **no more than two adjectives** per paragraph.",
-    "high_exemplar_allowed": false
-  },
-
   "Comparative_Framing": {
     "high_threshold": 7,
     "low_threshold": 3,
-    "high_rule": "- Draw explicit historical or sector comparisons (e.g., “like buying Netflix in 2002” or “this decade’s oil rush”).",
-    "mid_rule": "- Use a single light comparison (e.g., “similar to past tech booms”) without deep storytelling.",
-    "low_rule": "- Do not reference historical comparisons or analogies; focus only on the present opportunity.",
-    "high_exemplar_allowed": false
+    "high_rule": "USE THE CONTRAST PRINCIPLE: Present a high anchor price first to make the offer seem smaller[cite: 1482]. Compare the opportunity to historical giants (e.g., 'Like buying Amazon in 1997')[cite: 298].",
+    "low_rule": "Focus on the product's intrinsic value. Avoid direct comparisons to competitors or historical events."
   },
-
+  "Conversational_Tone": {
+    "high_threshold": 8,
+    "low_threshold": 3,
+    "high_rule": "USE THE 'LIKING' PRINCIPLE: Be relatable, use 'everyday' language, and compliment the reader[cite: 1635]. Use small words [cite: 1205] and write in the second person ('You')[cite: 1201].",
+    "low_rule": "Maintain a formal, authoritative 'Professor' tone. Use precise industry terminology and third-person phrasing."
+  },
   "FOMO": {
     "high_threshold": 7,
     "low_threshold": 3,
-    "high_rule": "- Highlight the emotional cost of missing out and potential regret (e.g., “don’t be left behind”).",
-    "mid_rule": "- Note that the offer is attractive and may not last, **but do not mention regret, fear, or missing out.** Words such as “popular” or “worth considering soon” are acceptable.",
-    "low_rule": "- Avoid any fear‑of‑missing‑out language or emotional urgency; present benefits objectively.",
-    "high_exemplar_allowed": false
-  },
-
-  "Repetition": {
-    "high_threshold": 6,
-    "low_threshold": 2,
-    "high_rule": "- Reinforce the main offer or deadline with **deliberate repetition** for emphasis (no more than two repeats).",
-    "mid_rule": "- Restate the offer once in a different phrase; avoid obvious repetition techniques.",
-    "low_rule": "- State each point only once; avoid repeated phrases entirely.",
-    "high_exemplar_allowed": false
+    "high_rule": "TRIGGER THE 'FEAR' DRIVER: Highlight the danger of being left behind[cite: 378]. Emphasize the emotional cost of missing the trend (e.g., 'Don't be the one who missed out').",
+    "low_rule": "Focus on 'Hope' and 'Salvation' (Lust/Greed) rather than Fear. Focus on the gain, not the loss."
   }
 }
