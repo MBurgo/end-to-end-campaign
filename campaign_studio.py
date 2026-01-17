@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import time
+import re
 import pathlib
 from io import BytesIO
 from textwrap import dedent
@@ -60,32 +61,36 @@ def load_configs():
 TRAIT_CFG, ALL_PERSONAS = load_configs()
 
 # ────────────────────────────────────────────────────────────
-# 3. AI ENGINE HANDLER (Hybrid)
+# 3. AI ENGINE HANDLER (Hybrid with Retry Logic)
 # ────────────────────────────────────────────────────────────
 
 def query_openai(messages, temperature=0.7, json_mode=False):
     """Specialized handler for Personas (GPT-4o)."""
     if "openai_api_key" not in st.secrets:
         st.error("⚠️ OpenAI API Key missing in .streamlit/secrets.toml")
-        return "Error: Missing API Key"
+        return None
         
     client = OpenAI(api_key=st.secrets.openai_api_key)
-    # UPDATED: Using gpt-4o as requested
     kwargs = {"model": "gpt-4o", "temperature": temperature}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
     
-    try:
-        resp = client.chat.completions.create(messages=messages, **kwargs)
-        return resp.choices[0].message.content
-    except Exception as e:
-        return f"OpenAI Error: {e}"
+    # Simple retry loop for OpenAI
+    for attempt in range(3):
+        try:
+            resp = client.chat.completions.create(messages=messages, **kwargs)
+            return resp.choices[0].message.content
+        except Exception as e:
+            if attempt == 2: # Last attempt
+                st.error(f"OpenAI Error: {e}")
+                return None
+            time.sleep(1) # Wait 1s before retry
 
 def query_gemini(messages, temperature=0.7, json_mode=False):
-    """Specialized handler for Copy & Strategy (Gemini 3 Flash Preview)."""
+    """Specialized handler for Copy & Strategy (Gemini 1.5 Flash)."""
     if "google_api_key" not in st.secrets:
         st.error("⚠️ Google API Key missing in .streamlit/secrets.toml")
-        return "Error: Missing API Key"
+        return None
         
     genai.configure(api_key=st.secrets.google_api_key)
     
@@ -105,13 +110,27 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         response_mime_type="application/json" if json_mode else "text/plain"
     )
     
-    try:
-        # UPDATED: Using gemini-3-flash-preview as requested
-        model = genai.GenerativeModel(model_name="gemini-3-flash-preview", system_instruction=sys_msg)
-        resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
-        return resp.text
-    except Exception as e:
-        return f"Gemini Error: {e}"
+    # Updated Model: 1.5 Flash (Better Rate Limits)
+    model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=sys_msg)
+
+    # RETRY LOOP (Crucial for 429 Errors)
+    for attempt in range(3):
+        try:
+            resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
+            return resp.text
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str:
+                # If rate limited, wait exponentially (2s, 4s, 8s)
+                wait_time = 2 ** (attempt + 1)
+                time.sleep(wait_time)
+            elif attempt == 2:
+                # If it's the last attempt, show the error
+                st.error(f"Gemini API Error: {error_str}")
+                return None
+            else:
+                # Unknown error, wait 1s and retry
+                time.sleep(1)
 
 # ────────────────────────────────────────────────────────────
 # 4. HELPER FUNCTIONS
@@ -160,8 +179,7 @@ for k, v in defaults.items():
 with st.sidebar:
     st.header("🎛️ Campaign Settings")
     
-    # UPDATED: Info box reflects correct models
-    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 3 Flash Preview\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 3 Flash Preview")
+    st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 1.5 Flash (High Speed)\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 1.5 Flash")
     
     st.markdown("---")
     
@@ -197,7 +215,7 @@ with tab_write:
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 1: The Brief</div>
-        Fill in the campaign details below. The AI (Gemini 3) will use your selected <strong>Tone Sliders</strong> 
+        Fill in the campaign details below. The AI (Gemini) will use your selected <strong>Tone Sliders</strong> 
         from the sidebar to draft high-converting copy.
     </div>
     """, unsafe_allow_html=True)
@@ -249,8 +267,7 @@ with tab_write:
                     if res:
                         try:
                             # Attempt to find JSON object structure using Regex
-                            # This ignores "Here is your JSON:" preambles
-                            import re
+                            # This ignores "Here is your JSON:" preambles and prevents parsing error text
                             json_match = re.search(r"\{[\s\S]*\}", res)
                             
                             if json_match:
@@ -264,7 +281,8 @@ with tab_write:
                                 st.session_state.critique_summary = ""
                                 st.rerun()
                             else:
-                                raise ValueError("No JSON object found in response.")
+                                st.error("AI returned text but no JSON format found.")
+                                st.write(res) # Show raw output for debug
                                 
                         except Exception as e:
                             st.error(f"⚠️ Parsing Error: {e}")
@@ -279,6 +297,7 @@ with tab_write:
             st.markdown(st.session_state.current_draft)
         else:
             st.info("👈 Fill out the brief and click 'Generate Draft' to start.")
+
 # ============================================================
 # TAB 2: THE SIMULATOR
 # ============================================================
@@ -362,7 +381,7 @@ with tab_refine:
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 3: Strategic Polish</div>
-        The AI (Gemini 3) will now act as a <strong>Marketing Strategist</strong>. 
+        The AI (Gemini) will now act as a <strong>Marketing Strategist</strong>. 
         It will read the transcript from Step 2, identify why the Skeptic was doubtful, and rewrite the copy to fix those gaps.
     </div>
     """, unsafe_allow_html=True)
