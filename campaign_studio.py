@@ -94,7 +94,9 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         
     genai.configure(api_key=st.secrets.google_api_key)
     
-    sys_msg = next((m['content'] for m in messages if m['role'] == 'system'), "")
+    # FIX: Default to None if no system message is found (Empty string "" causes API error)
+    sys_msg = next((m['content'] for m in messages if m['role'] == 'system'), None)
+    
     history = [m['content'] for m in messages if m['role'] != 'system']
     prompt = "\n\n".join(history)
 
@@ -116,8 +118,8 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
     # ---------------------------------------------------------
     known_models = [
         "gemini-2.5-flash",          # BEST OPTION: Current Stable Workhorse
-        "gemini-2.0-flash",          # BACKUP: Previous Stable
-        "gemini-1.5-flash-8b",       # FALLBACK: Ultra-fast/Lightweight
+        "gemini-2.5-flash-lite",     # BACKUP: Ultra-fast, rarely rate-limited
+        "gemini-2.0-flash",          # LEGACY: Reliable older standard
         "gemini-3-flash-preview"     # EXPERIMENTAL: Use as last resort due to Rate Limits
     ]
 
@@ -127,7 +129,12 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         # Retry loop for 429 (Rate Limits) on the current model
         for attempt in range(3):
             try:
-                model = genai.GenerativeModel(model_name=model_name, system_instruction=sys_msg)
+                # Only pass system_instruction if it exists (not None)
+                if sys_msg:
+                    model = genai.GenerativeModel(model_name=model_name, system_instruction=sys_msg)
+                else:
+                    model = genai.GenerativeModel(model_name=model_name)
+                    
                 resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
                 return resp.text
                 
