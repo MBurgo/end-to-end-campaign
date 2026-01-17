@@ -94,7 +94,7 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
         
     genai.configure(api_key=st.secrets.google_api_key)
     
-    # FIX: Default to None if no system message is found (Empty string "" causes API error)
+    # FIX: Default to None if no system message is found
     sys_msg = next((m['content'] for m in messages if m['role'] == 'system'), None)
     
     history = [m['content'] for m in messages if m['role'] != 'system']
@@ -114,19 +114,17 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
     
     # ---------------------------------------------------------
     # SELF-HEALING MODEL SELECTOR
-    # We try these models in order. If one fails (404), we try the next.
     # ---------------------------------------------------------
     known_models = [
-        "gemini-2.5-flash",          # BEST OPTION: Current Stable Workhorse
-        "gemini-2.5-flash-lite",     # BACKUP: Ultra-fast, rarely rate-limited
-        "gemini-2.0-flash",          # LEGACY: Reliable older standard
-        "gemini-3-flash-preview"     # EXPERIMENTAL: Use as last resort due to Rate Limits
+        "gemini-2.5-flash",          # BEST OPTION
+        "gemini-2.5-flash-lite",     # BACKUP
+        "gemini-2.0-flash",          # LEGACY
+        "gemini-3-flash-preview"     # EXPERIMENTAL
     ]
 
     last_error = None
 
     for model_name in known_models:
-        # Retry loop for 429 (Rate Limits) on the current model
         for attempt in range(3):
             try:
                 # Only pass system_instruction if it exists (not None)
@@ -142,25 +140,19 @@ def query_gemini(messages, temperature=0.7, json_mode=False):
                 error_str = str(e)
                 last_error = error_str
                 
-                # CASE 1: Rate Limit (Wait and retry same model)
                 if "429" in error_str:
-                    time.sleep(2 ** (attempt + 1)) # Exponential backoff: 2s, 4s...
+                    time.sleep(2 ** (attempt + 1)) # Exponential backoff
                     continue
-                
-                # CASE 2: Model Not Found (Break retry loop, try next model in list)
                 if "404" in error_str or "not found" in error_str.lower():
                     break 
-                
-                # CASE 3: Other errors (Stop trying)
                 if attempt == 2:
                     break
-        
-        # If we had a successful return, we exit the function. 
-        # If we broke out of the inner loop, we continue to the next model in `known_models`.
+        else:
+            continue
+        break
 
-    # If we get here, all models failed
-    st.error(f"🚨 All Gemini models failed. Last error: {last_error}")
-    st.info("Tip: In Streamlit Cloud, click the menu (top right) -> 'Reboot App' to force the new library version to load.")
+    if last_error:
+        st.error(f"🚨 All Gemini models failed. Last error: {last_error}")
     return None
 
 # ────────────────────────────────────────────────────────────
@@ -209,9 +201,7 @@ for k, v in defaults.items():
 # ────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("🎛️ Campaign Settings")
-    
     st.info("🤖 **Hybrid Intelligence Active**\n\n• **Writer:** Gemini 2.5 Flash\n• **Personas:** OpenAI GPT-4o\n• **Strategist:** Gemini 2.5 Flash")
-    
     st.markdown("---")
     
     st.subheader("🎯 Primary Audience")
@@ -221,14 +211,14 @@ with st.sidebar:
 
     st.markdown("---")
 
-    with st.expander("🎚️ Voice & Tone Control", expanded=False):
+    with st.expander("🎚️ Voice & Tone Control", expanded=True):
         trait_scores = {
-            "Urgency": st.slider("Urgency", 1, 10, 7),
-            "Data_Richness": st.slider("Data / Stats", 1, 10, 6),
+            "Urgency": st.slider("Urgency (Scarcity)", 1, 10, 7),
+            "Data_Richness": st.slider("Specificity (4 U's)", 1, 10, 6),
             "Social_Proof": st.slider("Social Proof", 1, 10, 6),
-            "Comparative_Framing": st.slider("Metaphors", 1, 10, 5),
-            "Conversational_Tone": st.slider("Conversational", 1, 10, 8),
-            "FOMO": st.slider("FOMO Intensity", 1, 10, 5),
+            "Comparative_Framing": st.slider("Contrast Principle", 1, 10, 5),
+            "Conversational_Tone": st.slider("Liking/Relatability", 1, 10, 8),
+            "FOMO": st.slider("Fear (Missing Out)", 1, 10, 5),
         }
 
 # ────────────────────────────────────────────────────────────
@@ -242,12 +232,11 @@ tab_write, tab_test, tab_refine = st.tabs(["1️⃣ Write Draft", "2️⃣ Stres
 # TAB 1: THE DRAFTER
 # ============================================================
 with tab_write:
-    # --- USER GUIDE ---
     st.markdown("""
     <div class="instruction-box">
-        <div class="step-header">Step 1: The Brief</div>
-        Fill in the campaign details below. The AI (Gemini 2.5) will use your selected <strong>Tone Sliders</strong> 
-        from the sidebar to draft high-converting copy.
+        <div class="step-header">Step 1: The Foolish Brief</div>
+        Fill in the details. The AI uses the <strong>"Raising Response"</strong> curriculum to write 
+        emotionally driven direct-response copy.
     </div>
     """, unsafe_allow_html=True)
 
@@ -255,91 +244,112 @@ with tab_write:
     
     with col1:
         st.subheader("📋 Campaign Brief")
-        hook = st.text_area("Campaign Hook / Angle", "e.g. 3 AI Stocks better than Nvidia. Urgent Buy Alert!", height=100)
-        details = st.text_area("Product / Offer Details", "e.g. Subscription to Share Advisor. $199/year. Includes 'Top 10 Stocks' report.", height=150)
+        hook = st.text_area("The 'Big Idea' (Hook)", "e.g. 3 AI Stocks better than Nvidia. Urgent Buy Alert!", height=100, help="Must be Timely, Useful, and Unique.")
+        details = st.text_area("Product / Offer Details", "e.g. Subscription to Share Advisor. $199/year.", height=150)
         
         c1, c2 = st.columns(2)
         length_mode = c1.selectbox("Length", ["Short (200w)", "Medium (500w)", "Long (1000w)"])
         copy_type = c2.selectbox("Format", ["📧 Email", "📝 Sales Page"])
         
-        if st.button("✨ Generate Draft (Gemini)", type="primary"):
+        # New: Select the Lede Type from the PDF 
+        lede_type = st.selectbox("Lede Strategy", [
+            "The Interrupting Idea (Startle the reader)",
+            "The Shocker (Go against the grain)",
+            "The News (Timely/Relevant)",
+            "The Preview (Tease the benefit)",
+            "The Story (Fact-packed narrative)",
+            "The Quotation (Hyper-relevant)"
+        ])
+        
+        if st.button("✨ Generate Foolish Copy", type="primary"):
             if not hook or not details:
                 st.warning("Please enter a Hook and Details.")
             else:
                 rules = trait_rules_builder(trait_scores)
                 target_desc = f"{target_persona['name']}, {target_persona['age']}yo {target_persona['occupation']} ({target_persona['segment']})" if target_persona else "General Investor"
                 
+                # ENHANCED SYSTEM PROMPT: Injecting "Raising Response" DNA
                 sys_prompt = dedent(f"""
-                You are a Senior Direct Response Copywriter. 
-                TARGET AUDIENCE: {target_desc}.
-                TONE RULES:
+                You are a Master Direct Response Copywriter for The Motley Fool. 
+                You follow the principles of the "Raising Response" course.
+
+                ### CORE PHILOSOPHY
+                1. **AIDA Framework:** You must grab Attention, generate Interest, stimulate Desire, and force Action.
+                2. **The 4 U's:** Your headline must be Urgent, Unique, Useful, and Ultra-Specific.
+                3. **Emotional Drivers:** You must target one of the 7 Drivers: Lust, Escape, Esteem, Fear, Guilt, Affinity, or Greed[cite: 374].
+                
+                ### STYLE RULES [cite: 1197]
+                - Use small words. Avoid "poetic" or "clever" copy.
+                - Write in the second person ("You").
+                - Use active verbs and the present tense.
+                - Be conversational but authoritative.
+                
+                ### TARGET AUDIENCE
+                {target_desc}
+                
+                ### TONE & BEHAVIOR RULES
                 {chr(10).join(rules)}
                 
-                STRUCTURE:
+                ### STRUCTURE
                 - Use Markdown headings.
-                - End with disclaimer: *Past performance is not a reliable indicator of future results.*
+                - End with compliance line: *Past performance is not a reliable indicator of future results.*
                 """)
                 
                 user_prompt = dedent(f"""
                 Write a {copy_type} ({length_mode}).
-                HOOK: {hook}
-                DETAILS: {details}
                 
-                OUTPUT JSON: {{ "plan": "bullet points", "copy": "the actual text" }}
+                **THE BIG IDEA:** {hook}
+                **LEDE STRATEGY:** {lede_type}
+                **OFFER DETAILS:** {details}
+                
+                **TASK:**
+                1. Create a bulleted "Internal Plan" identifying the specific Emotional Driver and how you will apply the 4 U's.
+                2. Write the copy.
+                
+                OUTPUT JSON: {{ "plan": "...", "copy": "..." }}
                 """)
                 
-                with st.spinner("Gemini is drafting your copy..."):
+                with st.spinner("Gemini is crafting your copy..."):
                     msgs = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_prompt}]
-                    
-                    # 1. Query Model
                     res = query_gemini(msgs, json_mode=True)
                     
-                    # 2. Robust Parsing Logic
                     if res:
                         try:
-                            # Attempt to find JSON object structure using Regex
-                            # This ignores "Here is your JSON:" preambles and prevents parsing error text
                             json_match = re.search(r"\{[\s\S]*\}", res)
-                            
                             if json_match:
                                 clean_json = json_match.group(0)
                                 data = json.loads(clean_json)
                                 st.session_state.current_draft = data["copy"]
                                 st.session_state.internal_plan = data["plan"]
-                                
-                                # Reset downstream tabs
                                 st.session_state.debate_transcript = [] 
                                 st.session_state.critique_summary = ""
                                 st.rerun()
                             else:
                                 st.error("AI returned text but no JSON format found.")
-                                st.write(res) # Show raw output for debug
-                                
+                                st.write(res)
                         except Exception as e:
                             st.error(f"⚠️ Parsing Error: {e}")
-                            with st.expander("See Raw Output (for debugging)", expanded=True):
-                                st.code(res)
+                            st.code(res)
 
     with col2:
         st.subheader("📝 Draft Preview")
         if st.session_state.current_draft:
-            with st.expander("View AI's Thinking Plan", expanded=False):
+            with st.expander("View AI's Strategy (The Plan)", expanded=True):
                 st.info(st.session_state.internal_plan)
             st.markdown(st.session_state.current_draft)
         else:
-            st.info("👈 Fill out the brief and click 'Generate Draft' to start.")
+            st.info("👈 Fill out the brief and click 'Generate Foolish Copy' to start.")
 
 # ============================================================
 # TAB 2: THE SIMULATOR
 # ============================================================
 with tab_test:
-    # --- USER GUIDE ---
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 2: The Focus Group</div>
         Select two diverse personas to debate your draft. 
-        <strong>The Believer</strong> will look for the upside. <strong>The Skeptic</strong> will try to find holes in your logic.
-        This happens via <strong>OpenAI (GPT-4o)</strong> for realistic roleplay.
+        <strong>The Believer</strong> focuses on Opportunity (Greed/Lust). 
+        <strong>The Skeptic</strong> focuses on Risk (Fear/Guilt).
     </div>
     """, unsafe_allow_html=True)
 
@@ -353,38 +363,36 @@ with tab_test:
         with c_b:
             p2_name = st.selectbox("Role: The Skeptic", persona_names, index=(idx_1 + 1) % len(persona_names), key="sim_p2")
         with c_c:
-            st.write("") # Spacer
-            st.write("") # Spacer
+            st.write("") 
+            st.write("") 
             start_sim = st.button("▶️ Start Simulation (GPT-4o)")
             
         if start_sim:
             p1 = next(p for p in ALL_PERSONAS if p["id"] == p1_name)
             p2 = next(p for p in ALL_PERSONAS if p["id"] == p2_name)
-            
             draft_text = st.session_state.current_draft
             transcript = []
             
-            prompt_base = f"You are participating in a marketing focus group. React to the text below. Be conversational, not robotic."
+            prompt_base = f"You are participating in a marketing focus group. React to the copy below. Be conversational."
             
-            # 1. The Believer (OpenAI)
-            role_1 = f"You are {p1['name']}, {p1['age']}. Bio: {p1['narrative']}. Values: {p1['values']}. You are OPTIMISTIC and looking for opportunity."
-            msg_1_prompt = f"{prompt_base}\nTEXT TO REVIEW:\n'{draft_text}'\n\nWhat excites you? What stands out?"
+            # 1. The Believer
+            role_1 = f"You are {p1['name']}, {p1['age']}. Bio: {p1['narrative']}. Values: {p1['values']}. You are OPTIMISTIC. You focus on the 'Upside' and the 'Dream'."
+            msg_1_prompt = f"{prompt_base}\nTEXT TO REVIEW:\n'{draft_text}'\n\nWhat excites you? Does the 'Big Idea' hook you?"
             
             with st.status("Running Simulation...") as status:
                 status.write(f"🎤 {p1['name']} is reading...")
-                # Use OpenAI for Personas
                 res_1 = query_openai([{"role":"system", "content": role_1}, {"role":"user", "content": msg_1_prompt}])
                 transcript.append({"name": p1["name"], "role": "Believer", "text": res_1})
                 
-                # 2. The Skeptic (OpenAI)
+                # 2. The Skeptic
                 status.write(f"🤔 {p2['name']} is critiquing...")
-                role_2 = f"You are {p2['name']}, {p2['age']}. Bio: {p2['narrative']}. Values: {p2['values']}. You are SKEPTICAL and risk-averse."
-                msg_2_prompt = f"{prompt_base}\nTEXT TO REVIEW:\n'{draft_text}'\n\n{p1['name']} just said: '{res_1}'.\nTell them why they are wrong. Find the 'catch' or the risk in the copy."
+                role_2 = f"You are {p2['name']}, {p2['age']}. Bio: {p2['narrative']}. Values: {p2['values']}. You are SKEPTICAL. You focus on 'Risk' and 'Objections'."
+                msg_2_prompt = f"{prompt_base}\nTEXT TO REVIEW:\n'{draft_text}'\n\n{p1['name']} just said: '{res_1}'.\nTell them why they are wrong. Find the holes in the argument."
                 
                 res_2 = query_openai([{"role":"system", "content": role_2}, {"role":"user", "content": msg_2_prompt}])
                 transcript.append({"name": p2["name"], "role": "Skeptic", "text": res_2})
                 
-                # 3. Rebuttal (OpenAI)
+                # 3. Rebuttal
                 status.write(f"🗣️ {p1['name']} is responding...")
                 msg_3_prompt = f"You just heard {p2['name']} say: '{res_2}'. Do you agree with their worry, or do you still want to buy?"
                 
@@ -408,12 +416,11 @@ with tab_test:
 # TAB 3: THE OPTIMIZER
 # ============================================================
 with tab_refine:
-    # --- USER GUIDE ---
     st.markdown("""
     <div class="instruction-box">
         <div class="step-header">Step 3: Strategic Polish</div>
-        The AI (Gemini 2.5) will now act as a <strong>Marketing Strategist</strong>. 
-        It will read the transcript from Step 2, identify why the Skeptic was doubtful, and rewrite the copy to fix those gaps.
+        The AI Strategist will now analyze the debate to find the <strong>"Trust Gap"</strong> 
+        and rewrite the copy to better handle objections.
     </div>
     """, unsafe_allow_html=True)
 
@@ -428,18 +435,18 @@ with tab_refine:
                 transcript_text = "\n".join([f"{t['role']}: {t['text']}" for t in st.session_state.debate_transcript])
                 
                 analysis_prompt = dedent(f"""
-                You are a Marketing Strategist. Analyze this debate transcript regarding a piece of copy.
+                You are a Senior Marketing Strategist using the 'Raising Response' framework.
+                Analyze this debate transcript regarding a piece of copy.
                 TRANSCRIPT:
                 {transcript_text}
                 
                 Identify:
-                1. The main "Trust Gap" (what made the Skeptic doubt).
+                1. The main "Trust Gap" (what made the Skeptic doubt)[cite: 89].
                 2. The main "Hook Strength" (what the Believer liked).
-                3. Three specific actionable edits to improve the copy.
+                3. Three specific actionable edits to improve the copy using 'Objection Removal' techniques[cite: 1387].
                 """)
                 
                 with st.spinner("Analyzing psychology..."):
-                    # Use Gemini for Strategy
                     st.session_state.critique_summary = query_gemini([{"role":"user", "content": analysis_prompt}])
             
             if st.session_state.critique_summary:
@@ -460,15 +467,14 @@ with tab_refine:
                     TASK:
                     Rewrite the copy to address the critique while maintaining the original high-energy tone.
                     Strengthen the proof points where the Skeptic was doubtful.
+                    Ensure the headline adheres to the 4 U's (Urgent, Unique, Useful, Ultra-Specific).
                     Output ONLY the final copy.
                     """)
                     
                     with st.spinner("Polishing final draft..."):
-                        # Use Gemini for Rewriting
                         st.session_state.optimized_copy = query_gemini([{"role":"user", "content": rewrite_prompt}])
             
             if st.session_state.optimized_copy:
                 st.markdown(st.session_state.optimized_copy)
-                
                 docx = create_docx(st.session_state.optimized_copy)
                 st.download_button("📥 Download Final DOCX", docx, "final_campaign.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
