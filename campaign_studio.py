@@ -8,6 +8,7 @@ from textwrap import dedent
 from docx import Document
 from docx.shared import Pt
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from openai import OpenAI
 
 # ────────────────────────────────────────────────────────────
@@ -94,14 +95,23 @@ def query_llm(messages, engine, temperature=0.7, json_mode=False):
         history = [m['content'] for m in messages if m['role'] != 'system']
         prompt = "\n\n".join(history)
 
+        # Safety Settings - Crucial for Copywriting (Allows "Urgency" without blocking)
+        safety_config = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        }
+
         config = genai.GenerationConfig(
             temperature=temperature,
             response_mime_type="application/json" if json_mode else "text/plain"
         )
         
         try:
-            model = genai.GenerativeModel(model_name="gemini-1.5-flash", system_instruction=sys_msg)
-            resp = model.generate_content(prompt, generation_config=config)
+            # Updated to use gemini-3-flash-preview as requested
+            model = genai.GenerativeModel(model_name="gemini-3-flash-preview", system_instruction=sys_msg)
+            resp = model.generate_content(prompt, generation_config=config, safety_settings=safety_config)
             return resp.text
         except Exception as e:
             st.error(f"Gemini Error: {e}")
