@@ -241,21 +241,35 @@ with tab_write:
                 
                 with st.spinner("Gemini is drafting your copy..."):
                     msgs = [{"role": "system", "content": sys_prompt}, {"role": "user", "content": user_prompt}]
-                    # Use Gemini for drafting
+                    
+                    # 1. Query Model
                     res = query_gemini(msgs, json_mode=True)
                     
+                    # 2. Robust Parsing Logic
                     if res:
                         try:
-                            clean_res = res.replace("```json", "").replace("```", "")
-                            data = json.loads(clean_res)
-                            st.session_state.current_draft = data["copy"]
-                            st.session_state.internal_plan = data["plan"]
-                            # Reset downstream tabs
-                            st.session_state.debate_transcript = [] 
-                            st.session_state.critique_summary = ""
-                            st.rerun()
-                        except:
-                            st.error("Error parsing AI response. Please try again.")
+                            # Attempt to find JSON object structure using Regex
+                            # This ignores "Here is your JSON:" preambles
+                            import re
+                            json_match = re.search(r"\{[\s\S]*\}", res)
+                            
+                            if json_match:
+                                clean_json = json_match.group(0)
+                                data = json.loads(clean_json)
+                                st.session_state.current_draft = data["copy"]
+                                st.session_state.internal_plan = data["plan"]
+                                
+                                # Reset downstream tabs
+                                st.session_state.debate_transcript = [] 
+                                st.session_state.critique_summary = ""
+                                st.rerun()
+                            else:
+                                raise ValueError("No JSON object found in response.")
+                                
+                        except Exception as e:
+                            st.error(f"⚠️ Parsing Error: {e}")
+                            with st.expander("See Raw Output (for debugging)", expanded=True):
+                                st.code(res)
 
     with col2:
         st.subheader("📝 Draft Preview")
@@ -265,7 +279,6 @@ with tab_write:
             st.markdown(st.session_state.current_draft)
         else:
             st.info("👈 Fill out the brief and click 'Generate Draft' to start.")
-
 # ============================================================
 # TAB 2: THE SIMULATOR
 # ============================================================
